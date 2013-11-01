@@ -10,6 +10,7 @@
 var assert = require("assert");
 var path = require("path");
 var fs = require("fs");
+var utils = require("util");
 var transform = require("./lib/visit").transform;
 var guessTabWidth = require("./lib/util").guessTabWidth;
 var recast = require("recast");
@@ -22,15 +23,18 @@ assert.ok(
 );
 
 function regenerator(source, options) {
-  if (!options) {
-    options = {
-      includeRuntime: false
-    };
-  }
+  var runtime = "";
+  options = utils._extend({
+    includeRuntime: false,
+    nodeRuntime: false
+  }, options);
 
-  var runtime = options.includeRuntime ? fs.readFileSync(
-    regenerator.runtime.dev, "utf-8"
-  ) + "\n" : "";
+  if (options.includeRuntime) {
+    runtime = fs.readFileSync(regenerator.runtime.dev, "utf-8") + "\n";
+  } else if (options.nodeRuntime) {
+    runtime = "var wrapGenerator = " +
+        "require(\"regenerator/runtime/dev\").wrapGenerator;\n";
+  }
 
   if (!genFunExp.test(source)) {
     return runtime + source; // Shortcut: no generators to transform.
